@@ -1,38 +1,21 @@
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::File;
-use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
-use std::time::Duration;
+use std::net::{IpAddr, SocketAddr};
 
 use serde_yaml;
 
-use concheck::Role;
+use concheck::net_check;
+use concheck::role::Role;
 
-fn test_port(address: &SocketAddr, enabled: &bool) -> bool {
-    match TcpStream::connect_timeout(address, Duration::from_secs(1)) {
-        Ok(_) => *enabled,
-        Err(_) => !enabled,
-    }
-}
-
-fn check_server(
-    name: String,
-    port_checks: &HashMap<u16, bool>,
-) -> Result<HashMap<u16, bool>, String> {
-    match format!("{}:22", name).to_socket_addrs() {
-        Ok(mut addresses) => match addresses.next() {
-            Some(mut address) => Ok(port_checks
-                .iter()
-                .map(|(number, enabled)| {
-                    address.set_port(*number);
-                    (*number, test_port(&address, enabled))
-                })
-                .collect()),
-            None => Err(format!("No address found for {}", name)),
-        },
-
-        Err(error) => Err(format!("{}: {}", name, error)),
-    }
+fn check_server(address: IpAddr, port_checks: &HashMap<u16, bool>) -> HashMap<u16, bool> {
+    port_checks
+        .iter()
+        .map(|(number, enabled)| {
+            let socket = SocketAddr::new(address, *number);
+            (*number, net_check::test_port(&socket, enabled))
+        })
+        .collect()
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -52,12 +35,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!("{}:", name);
 
-        for server in role.servers() {
-            match check_server(server.to_string(), &port_checks) {
-                Ok(results) => {
-                    println!("\t{} => {:?}", server, results)
+        for (name, maybe_address) in role.addresses() {
+            match maybe_address {
+                Ok(address) => {
+                    let results = check_server(address, &port_checks);
+                    println!("\t{}\t{} => {:?}", address, name, results)
                 }
-                Err(msg) => println!("{}", msg),
+                Err(error) => println!("{} -> {}", name, error),
             }
         }
     }
