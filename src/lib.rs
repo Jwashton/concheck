@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 
+pub mod inventory;
 pub mod reporting;
+pub mod result;
 pub mod role;
 pub mod services;
 
@@ -9,14 +11,15 @@ pub mod net_check {
     use std::net::{IpAddr, SocketAddr, TcpStream};
     use std::time::Duration;
 
-    pub fn test_port(address: &SocketAddr, enabled: &bool) -> bool {
-        match TcpStream::connect_timeout(address, Duration::from_secs(1)) {
-            Ok(_) => *enabled,
-            Err(_) => !enabled,
-        }
+    use crate::result::TestResult;
+
+    pub fn test_port(address: &SocketAddr, enabled: &bool) -> TestResult {
+        let connection = TcpStream::connect_timeout(address, Duration::from_secs(1));
+
+        TestResult::from_result(connection, *enabled)
     }
 
-    pub fn check_server(address: IpAddr, port_checks: &HashMap<u16, bool>) -> HashMap<u16, bool> {
+    pub fn check_server(address: IpAddr, port_checks: &HashMap<u16, bool>) -> HashMap<u16, TestResult> {
         port_checks
             .iter()
             .map(|(number, enabled)| {

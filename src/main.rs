@@ -1,36 +1,20 @@
 use std::error::Error;
-use std::fs::File;
 
-use serde_yaml;
-
+use concheck::inventory::Inventory;
 use concheck::net_check;
 use concheck::reporting;
-use concheck::role::Role;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let file = File::open("./inventory.yml")?;
-    let roles: Vec<Role> = serde_yaml::from_reader(file)?;
-
-    let all_ports = concheck::collect_ports(&roles);
-
-    let all_server_names = roles
-        .iter()
-        .map(|role| role.servers())
-        .flatten()
-        .collect::<Vec<&String>>();
-
-    let longest_name_length = all_server_names
-        .iter()
-        .map(|name| name.chars().count())
-        .max()
-        .unwrap();
+    let inventory = Inventory::from_file("./inventory.yml").unwrap();
+    let all_ports = inventory.all_ports();
+    let longest_name_length = inventory.length_of_longest_server_name();
 
     println!(
         "{}",
         reporting::format_header(&all_ports, longest_name_length)
     );
 
-    for role in &roles {
+    for role in &inventory.roles {
         let port_checks = role.services().to_port_checks();
 
         println!("{}:", role.name());
