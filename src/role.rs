@@ -1,8 +1,12 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, ToSocketAddrs};
+use std::sync::mpsc;
+use std::thread;
 
 use serde::Deserialize;
 
+use crate::net_check;
+use crate::result::TestResult;
 use crate::services::Services;
 
 #[derive(Deserialize, Debug)]
@@ -36,6 +40,29 @@ impl Role {
             .iter()
             .map(|name| (name.clone(), to_ip_addr(name.as_str())))
             .collect()
+    }
+
+    pub fn check_servers(&self) -> mpsc::Receiver<(IpAddr, String, HashMap<u16, TestResult>)> {
+        let port_checks = self.services().to_port_checks();
+        let (tx, rx) = mpsc::channel();
+        println!("{}:", self.name());
+
+        for (name, maybe_address) in self.addresses() {
+            match maybe_address {
+                Ok(address) => {
+                    let my_tx = tx.clone();
+                    let my_checks = port_checks.clone();
+
+                    thread::spawn(move || {
+                        let results = net_check::check_server(address, &my_checks);
+                        my_tx.send((address, name, results)).unwrap();
+                    });
+                }
+                Err(error) => println!("{} -> {}", name, error),
+            }
+        }
+
+        rx
     }
 }
 

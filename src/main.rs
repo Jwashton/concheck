@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use concheck::inventory::Inventory;
-use concheck::net_check;
 use concheck::reporting;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -15,27 +14,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     for role in &inventory.roles {
-        let port_checks = role.services().to_port_checks();
+        let rx = role.check_servers();
 
-        println!("{}:", role.name());
+        for _ in 0..(role.servers().len()) {
+            let (address, name, results) = rx.recv().unwrap();
 
-        for (name, maybe_address) in role.addresses() {
-            match maybe_address {
-                Ok(address) => {
-                    let results = net_check::check_server(address, &port_checks);
-                    println!(
-                        "{}",
-                        reporting::format_server(
-                            address,
-                            name,
-                            longest_name_length,
-                            &all_ports,
-                            results
-                        )
-                    )
-                }
-                Err(error) => println!("{} -> {}", name, error),
-            }
+            println!(
+                "{}",
+                reporting::format_server(address, name, longest_name_length, &all_ports, results)
+            )
         }
     }
 
