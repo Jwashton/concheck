@@ -5,7 +5,7 @@ use concheck::net_check;
 use concheck::reporting;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let inventory = Inventory::from_file("./inventory.yml").unwrap();
+    let inventory = Inventory::from_file("./inventory.yml")?;
     let all_ports = inventory.all_ports();
     let longest_name_length = inventory.length_of_longest_server_name();
 

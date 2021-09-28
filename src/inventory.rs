@@ -46,6 +46,6 @@ impl Inventory {
             .iter()
             .map(|name| name.chars().count())
             .max()
-            .unwrap()
+            .unwrap_or(5)
     }
 }
