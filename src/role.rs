@@ -7,6 +7,7 @@ use crate::services::Services;
 
 #[derive(Deserialize, Debug)]
 pub struct Role {
+    name: String,
     services: Services,
     servers: Vec<String>,
 }
@@ -14,6 +15,10 @@ pub struct Role {
 type MaybeAddress = Result<IpAddr, std::io::Error>;
 
 impl Role {
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
     pub fn services(&self) -> &Services {
         &self.services
     }

@@ -18,12 +18,8 @@ fn check_server(address: IpAddr, port_checks: &HashMap<u16, bool>) -> HashMap<u1
         .collect()
 }
 
-fn format_header(ports: HashSet<u16>, longest_name: usize) -> String {
-    let mut ordered_ports = ports.iter().collect::<Vec<&u16>>();
-
-    ordered_ports.sort();
-
-    let header = ordered_ports
+fn format_header(ports: &Vec<u16>, longest_name: usize) -> String {
+    let header = ports
         .iter()
         .map(|port| port.to_string())
         .collect::<Vec<String>>()
@@ -38,16 +34,49 @@ fn format_header(ports: HashSet<u16>, longest_name: usize) -> String {
     )
 }
 
+fn format_server(
+    address: IpAddr,
+    name: String,
+    longest_name: usize,
+    all_ports: &Vec<u16>,
+    results: HashMap<u16, bool>,
+) -> String {
+    format!(
+        "\t{: <15}\t{:width$}\t{}",
+        address,
+        name,
+        format_results(all_ports, results),
+        width = longest_name
+    )
+}
+
+fn format_results(all_ports: &Vec<u16>, results: HashMap<u16, bool>) -> String {
+    all_ports
+        .iter()
+        .map(|port| match results.get(port) {
+            Some(true) => "yes",
+            Some(false) => "no",
+            None => " ",
+        })
+        .collect::<Vec<&str>>()
+        .join("\t")
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("./inventory.yml")?;
-    let roles: HashMap<String, Role> = serde_yaml::from_reader(file)?;
+    let roles: Vec<Role> = serde_yaml::from_reader(file)?;
 
-    let all_ports = roles.iter().fold(HashSet::new(), |ports, (_name, role)| {
-        &ports | &role.ports()
-    });
+    let mut all_ports = roles
+        .iter()
+        .fold(HashSet::new(), |ports, role| &ports | &role.ports())
+        .into_iter()
+        .collect::<Vec<u16>>();
+
+    all_ports.sort();
+
     let all_names = roles
         .iter()
-        .map(|(_name, role)| role.servers())
+        .map(|role| role.servers())
         .flatten()
         .collect::<Vec<&String>>();
 
@@ -55,18 +84,31 @@ fn main() -> Result<(), Box<dyn Error>> {
         .iter()
         .max_by(|x, y| x.chars().count().cmp(&y.chars().count()));
 
-    println!("{}", format_header(all_ports, longest_name.unwrap().chars().count()));
+    println!(
+        "{}",
+        format_header(&all_ports, longest_name.unwrap().chars().count())
+    );
 
-    for (name, role) in &roles {
+    for role in &roles {
         let port_checks = role.services().to_port_checks();
 
-        println!("{}:", name);
+        println!("{}:", role.name());
 
         for (name, maybe_address) in role.addresses() {
             match maybe_address {
                 Ok(address) => {
                     let results = check_server(address, &port_checks);
-                    println!("\t{}\t{} => {:?}", address, name, results)
+                    // println!("\t{}\t{} => {:?}", address, name, results)
+                    println!(
+                        "{}",
+                        format_server(
+                            address,
+                            name,
+                            longest_name.unwrap().chars().count(),
+                            &all_ports,
+                            results
+                        )
+                    )
                 }
                 Err(error) => println!("{} -> {}", name, error),
             }
