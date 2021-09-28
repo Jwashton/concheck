@@ -6,7 +6,7 @@ use std::thread;
 use serde::Deserialize;
 
 use crate::net_check;
-use crate::result::TestResult;
+use crate::result::TestResultKind;
 use crate::services::Services;
 
 #[derive(Deserialize, Debug)]
@@ -42,10 +42,9 @@ impl Role {
             .collect()
     }
 
-    pub fn check_servers(&self) -> mpsc::Receiver<(IpAddr, String, HashMap<u16, TestResult>)> {
+    pub fn check_servers(&self) -> mpsc::Receiver<(IpAddr, String, HashMap<u16, TestResultKind>)> {
         let port_checks = self.services().to_port_checks();
         let (tx, rx) = mpsc::channel();
-        println!("{}:", self.name());
 
         for (name, maybe_address) in self.addresses() {
             match maybe_address {

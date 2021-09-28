@@ -14,6 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     for role in &inventory.roles {
+        println!("{}:", role.name());
         let rx = role.check_servers();
 
         for _ in 0..(role.servers().len()) {

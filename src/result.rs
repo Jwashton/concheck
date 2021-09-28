@@ -1,13 +1,13 @@
-pub enum TestResult {
+pub enum TestResultKind {
     Success,
     Failure(bool, bool),
     Skipped
 }
 
-use TestResult::{Success, Failure};
+use TestResultKind::{Success, Failure};
 
-impl TestResult {
-    pub fn from_result<A, B>(result: Result<A, B>, expected: bool) -> TestResult {
+impl TestResultKind {
+    pub fn from_result<A, B>(result: Result<A, B>, expected: bool) -> TestResultKind {
         match (result, expected) {
             (Ok(_), true) => Success,
             (Ok(_), false) => Failure(expected, true),

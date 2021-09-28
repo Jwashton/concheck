@@ -11,15 +11,15 @@ pub mod net_check {
     use std::net::{IpAddr, SocketAddr, TcpStream};
     use std::time::Duration;
 
-    use crate::result::TestResult;
+    use crate::result::TestResultKind;
 
-    pub fn test_port(address: &SocketAddr, enabled: &bool) -> TestResult {
+    pub fn test_port(address: &SocketAddr, enabled: &bool) -> TestResultKind {
         let connection = TcpStream::connect_timeout(address, Duration::from_secs(1));
 
-        TestResult::from_result(connection, *enabled)
+        TestResultKind::from_result(connection, *enabled)
     }
 
-    pub fn check_server(address: IpAddr, port_checks: &HashMap<u16, bool>) -> HashMap<u16, TestResult> {
+    pub fn check_server(address: IpAddr, port_checks: &HashMap<u16, bool>) -> HashMap<u16, TestResultKind> {
         port_checks
             .iter()
             .map(|(number, enabled)| {

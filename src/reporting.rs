@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::net::IpAddr;
 
-use crate::result::TestResult;
+use crate::result::TestResultKind;
 
 pub fn format_header(ports: &Vec<u16>, longest_name: usize) -> String {
     let header = ports
@@ -24,7 +24,7 @@ pub fn format_server(
     name: String,
     longest_name: usize,
     all_ports: &Vec<u16>,
-    results: HashMap<u16, TestResult>,
+    results: HashMap<u16, TestResultKind>,
 ) -> String {
     format!(
         "\t{: <15}\t{:width$}\t{}",
@@ -35,15 +35,15 @@ pub fn format_server(
     )
 }
 
-pub fn format_results(all_ports: &Vec<u16>, results: HashMap<u16, TestResult>) -> String {
+pub fn format_results(all_ports: &Vec<u16>, results: HashMap<u16, TestResultKind>) -> String {
     all_ports
         .iter()
         .map(|port| match results.get(port) {
             // Some(true) => "✅",
-            Some(TestResult::Success) => "yes",
+            Some(TestResultKind::Success) => "yes",
             // Some(false) => "❌",
-            Some(TestResult::Failure(_, _)) => "no",
-            Some(TestResult::Skipped) => " ",
+            Some(TestResultKind::Failure(_, _)) => "no",
+            Some(TestResultKind::Skipped) => " ",
             None => " ",
         })
         .collect::<Vec<&str>>()
