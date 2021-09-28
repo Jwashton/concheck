@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 pub mod reporting;
 pub mod role;
 pub mod services;
@@ -23,4 +25,16 @@ pub mod net_check {
             })
             .collect()
     }
+}
+
+pub fn collect_ports(roles: &Vec<role::Role>) -> Vec<u16> {
+    let mut all_ports = roles
+        .iter()
+        .fold(HashSet::new(), |ports, role| &ports | &role.ports())
+        .into_iter()
+        .collect::<Vec<u16>>();
+
+    all_ports.sort();
+
+    all_ports
 }

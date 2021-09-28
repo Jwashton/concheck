@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::error::Error;
 use std::fs::File;
 
@@ -12,27 +11,23 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("./inventory.yml")?;
     let roles: Vec<Role> = serde_yaml::from_reader(file)?;
 
-    let mut all_ports = roles
-        .iter()
-        .fold(HashSet::new(), |ports, role| &ports | &role.ports())
-        .into_iter()
-        .collect::<Vec<u16>>();
+    let all_ports = concheck::collect_ports(&roles);
 
-    all_ports.sort();
-
-    let all_names = roles
+    let all_server_names = roles
         .iter()
         .map(|role| role.servers())
         .flatten()
         .collect::<Vec<&String>>();
 
-    let longest_name = all_names
+    let longest_name_length = all_server_names
         .iter()
-        .max_by(|x, y| x.chars().count().cmp(&y.chars().count()));
+        .map(|name| name.chars().count())
+        .max()
+        .unwrap();
 
     println!(
         "{}",
-        reporting::format_header(&all_ports, longest_name.unwrap().chars().count())
+        reporting::format_header(&all_ports, longest_name_length)
     );
 
     for role in &roles {
@@ -44,13 +39,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             match maybe_address {
                 Ok(address) => {
                     let results = net_check::check_server(address, &port_checks);
-                    // println!("\t{}\t{} => {:?}", address, name, results)
                     println!(
                         "{}",
                         reporting::format_server(
                             address,
                             name,
-                            longest_name.unwrap().chars().count(),
+                            longest_name_length,
                             &all_ports,
                             results
                         )
