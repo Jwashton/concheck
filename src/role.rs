@@ -1,12 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::net::{IpAddr, ToSocketAddrs};
-use std::sync::mpsc;
-use std::thread;
 
 use serde::Deserialize;
 
-use crate::net_check;
-use crate::result::TestResultKind;
+use crate::server::ServerType;
 use crate::services::Services;
 
 #[derive(Deserialize, Debug)]
@@ -31,7 +28,7 @@ impl Role {
         self.services.to_port_checks().keys().cloned().collect()
     }
 
-    pub fn servers(&self) -> &Vec<String> {
+    pub fn server_names(&self) -> &Vec<String> {
         &self.servers
     }
 
@@ -42,26 +39,32 @@ impl Role {
             .collect()
     }
 
-    pub fn check_servers(&self) -> mpsc::Receiver<(IpAddr, String, HashMap<u16, TestResultKind>)> {
+    pub fn servers(&self) -> Vec<ServerType> {
         let port_checks = self.services().to_port_checks();
-        let (tx, rx) = mpsc::channel();
 
-        for (name, maybe_address) in self.addresses() {
-            match maybe_address {
+        self.addresses()
+            .iter()
+            .map(|(name, maybe_address)| match maybe_address {
                 Ok(address) => {
-                    let my_tx = tx.clone();
-                    let my_checks = port_checks.clone();
-
-                    thread::spawn(move || {
-                        let results = net_check::check_server(address, &my_checks);
-                        my_tx.send((address, name, results)).unwrap();
-                    });
+                    ServerType::known(address.clone(), name.clone(), port_checks.clone())
                 }
-                Err(error) => println!("{} -> {}", name, error),
-            }
+                Err(_) => ServerType::unknown(name.clone()),
+            })
+            .collect()
+    }
+
+    pub fn check_servers(&self, all_ports: Vec<u16>) -> Vec<ServerType> {
+        let mut servers = self.servers();
+
+        for server in &mut servers {
+            server.check_ports(all_ports.clone());
         }
 
-        rx
+        for server in &mut servers {
+            server.collect_results(all_ports.clone());
+        }
+
+        servers
     }
 }
 

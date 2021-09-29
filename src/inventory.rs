@@ -36,7 +36,7 @@ impl Inventory {
     fn all_server_names(&self) -> Vec<&String> {
         self.roles
             .iter()
-            .map(|role| role.servers())
+            .map(|role| role.server_names())
             .flatten()
             .collect::<Vec<&String>>()
     }

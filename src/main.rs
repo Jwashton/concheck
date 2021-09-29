@@ -2,6 +2,8 @@ use std::error::Error;
 
 use concheck::inventory::Inventory;
 use concheck::reporting;
+use concheck::server::ServerType;
+use concheck::result::FailureKind;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let inventory = Inventory::from_file("./inventory.yml")?;
@@ -13,17 +15,42 @@ fn main() -> Result<(), Box<dyn Error>> {
         reporting::format_header(&all_ports, longest_name_length)
     );
 
+    let mut all_failures = vec![];
+
     for role in &inventory.roles {
         println!("{}:", role.name());
-        let rx = role.check_servers();
+        let servers = role.check_servers(all_ports.clone());
 
-        for _ in 0..(role.servers().len()) {
-            let (address, name, results) = rx.recv().unwrap();
+        for server in servers {
+            match &server {
+                ServerType::Unknown(server) => {
+                    println!("Could not resolve {}", server.name())
+                },
+                ServerType::Known(server) => {
+                    println!(
+                        "{}",
+                        reporting::format_server(server.address, server.name.clone(), longest_name_length, &all_ports, server.results.clone())
+                    )
+                },
+            };
 
-            println!(
-                "{}",
-                reporting::format_server(address, name, longest_name_length, &all_ports, results)
-            )
+            for failure in server.failures() {
+                all_failures.push(failure);
+            }
+        }
+    }
+
+    println!("\n{} Failures found:\n", all_failures.len());
+
+    for failure in all_failures {
+        match failure {
+            FailureKind::NoAddress(name) => {
+                println!("Failure: could not resolve {}", name)
+            }
+
+            FailureKind::BadPort(result) => {
+                println!("{}", result)
+            }
         }
     }
 

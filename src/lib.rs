@@ -4,6 +4,7 @@ pub mod inventory;
 pub mod reporting;
 pub mod result;
 pub mod role;
+pub mod server;
 pub mod services;
 
 pub mod net_check {
