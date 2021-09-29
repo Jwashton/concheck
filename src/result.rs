@@ -68,7 +68,7 @@ impl fmt::Display for TestFailure {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Connection Failure for `{}` on server `{}` at `{}`:\n",
+            "Connection Failure for port `{}` on server `{}` at `{}`:\n",
             self.port, self.name, self.address
         )?;
         write!(

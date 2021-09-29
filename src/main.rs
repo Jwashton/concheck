@@ -1,3 +1,4 @@
+use std::env;
 use std::error::Error;
 
 use concheck::inventory::Inventory;
@@ -6,7 +7,11 @@ use concheck::server::ServerType;
 use concheck::result::FailureKind;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let inventory = Inventory::from_file("./inventory.yml")?;
+    let args: Vec<String> = env::args().collect();
+
+    let filename = &args[1];
+
+    let inventory = Inventory::from_file(filename)?;
     let all_ports = inventory.all_ports();
     let longest_name_length = inventory.length_of_longest_server_name();
 
@@ -45,7 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     for failure in all_failures {
         match failure {
             FailureKind::NoAddress(name) => {
-                println!("Failure: could not resolve {}", name)
+                println!("Failure: could not resolve {}\n", name)
             }
 
             FailureKind::BadPort(result) => {

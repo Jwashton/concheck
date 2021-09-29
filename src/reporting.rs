@@ -40,9 +40,9 @@ pub fn format_results(all_ports: &Vec<u16>, results: HashMap<u16, TestResultKind
         .iter()
         .map(|port| match results.get(port) {
             // Some(true) => "✅",
-            Some(TestResultKind::Success) => "yes",
+            Some(TestResultKind::Success) => "pass",
             // Some(false) => "❌",
-            Some(TestResultKind::Failure(_, _)) => "no",
+            Some(TestResultKind::Failure(_, _)) => "fail",
             Some(TestResultKind::Skipped) => " ",
             None => " ",
         })
